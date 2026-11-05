@@ -1,0 +1,60 @@
+# Image: image + version (+ optional prereleaseSuffix, which forces imagePullPolicy Always), as in the upstream charts.
+image: lekhamaru/tmfc043
+version: 0.1.0
+prereleaseSuffix:
+imagePullPolicy: IfNotPresent
+replicas: 1
+loglevel: "20"
+
+kafka:
+  # Port 9095 is the broker's OAuth listener (Keycloak tokens).
+  bootstrapServers: oda-kafka-kafka-bootstrap.kafka.svc.cluster.local:9095
+  securityProtocol: SASL_SSL
+  # Strimzi: namespace and name of the Kafka cluster, and the KafkaUser API version it serves.
+  namespace: kafka
+  clusterName: oda-kafka
+  userApiVersion: kafka.strimzi.io/v1
+  # KafkaUser (principal oda-<component>) holding the component's ACLs. Strimzi's User Operator removes
+  # ACLs that have no KafkaUser. The Event Management Operator creates it when its chart value
+  # kafka.userManagement.enabled is true, so leave this false then; set true only without that.
+  createKafkaUser: false
+
+# CA certificates the pod trusts. Provide the PEM text, or leave empty and create the two Secrets
+# (key ca.crt) yourself with the names below.
+tls:
+  kafkaCaSecret: tmfc043-kafka-ca
+  keycloakCaSecret: tmfc043-keycloak-ca
+  kafkaCa: ""
+  keycloakCa: ""
+
+keycloak:
+  tokenUrl: https://canvas-keycloak.canvas.svc.cluster.local:8443/auth/realms/odari/protocol/openid-connect/token
+  # Secret the identity operator creates once the Component is Complete (keys client_id, client_secret).
+  clientSecret: tmfc043-secret
+
+# Address of the NetoAI digital twin that the TMF642 / TMF656 proxy forwards to. Empty = the proxy answers 503.
+twin:
+  baseUrl: ""
+  timeoutSeconds: 20
+
+# Topics: defaults are the create and clear flows of the delivery diagrams.
+topics:
+  alarmDetected: oda.trapReceiver.event.alarmDetected
+  alarmCleared: oda.trapReceiver.event.alarmCleared
+  problemCreateIn: oda.alarmManagement.serviceProblemCreateNotificationEvent
+  problemStateIn: oda.alarmManagement.serviceProblemStateChangeNotificationEvent
+  createAlarmOut: oda.tmf642.command.createAlarm
+  clearAlarmOut: oda.tmf642.command.clearAlarm
+  problemCreateOut: oda.tmf656.serviceProblemCreateNotificationEvent
+  problemStateOut: oda.tmf656.serviceProblemStateChangeNotificationEvent
+
+# Name of the component that publishes the trap events and the one that publishes the service problems.
+publishers:
+  trapReceiver: trapreceivercomponent
+  alarmManagement: alarm-management-agent
+
+specUrl: https://github.com/tmforum-oda/TMFOP006-Event-Management/blob/main/demo-app/tmfc043/README.md
+
+global:
+  # registry: myregistry.example.com/
+  imagePullSecrets: []
