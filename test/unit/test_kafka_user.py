@@ -133,3 +133,10 @@ def test_collect_survives_one_bad_object():
     bad = {"metadata": {"name": "x", "uid": "9"}, "spec": {}}  # owner_of raises KeyError
     got = ku.collect_access("a", [bad, _item("p1", "a", "1")], [], **KW)
     assert got.published == {"topic.p1"}
+
+
+def test_collect_ignores_objects_already_being_deleted():
+    pubs = [_item("p1", "a", "1"), _item("p2", "a", "2")]
+    pubs[1]["metadata"]["deletionTimestamp"] = "2026-11-11T11:44:00Z"
+    got = ku.collect_access("a", pubs, [], **KW)
+    assert got.published == {"topic.p1"}

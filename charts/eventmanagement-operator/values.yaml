@@ -4,7 +4,7 @@ operator:
   # Public image, built from source/eventOperator (see the chart README). Same convention as the
   # upstream charts: image + version (+ optional prereleaseSuffix, which forces imagePullPolicy Always).
   image: lekhamaru/eventmanagement-operator
-  version: 0.3.1
+  version: 0.3.2
   prereleaseSuffix:
   imagePullPolicy: IfNotPresent
   replicas: 1

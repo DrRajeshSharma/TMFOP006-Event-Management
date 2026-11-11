@@ -113,6 +113,18 @@ def build_kafka_user(component: str, access: ComponentAccess, settings: KafkaUse
     }
 
 
+def _leaving(item: Dict[str, Any], exclude_uid: Optional[str]) -> bool:
+    """True for an object that must not count: the one being deleted, or any object that
+    already has a deletionTimestamp. Several objects of one component can be deleted at once;
+    without the second test the last handler to run would still see its siblings and leave
+    their ACLs behind.
+    """
+    meta = item.get("metadata", {}) or {}
+    if exclude_uid and meta.get("uid") == exclude_uid:
+        return True
+    return bool(meta.get("deletionTimestamp"))
+
+
 def collect_access(
     component: str,
     published: Iterable[Dict[str, Any]],
@@ -135,7 +147,7 @@ def collect_access(
     """
     access = ComponentAccess()
     for item in published:
-        if (item.get("metadata", {}) or {}).get("uid") == exclude_uid and exclude_uid:
+        if _leaving(item, exclude_uid):
             continue
         try:
             if owner_of(item) == component:
@@ -143,7 +155,7 @@ def collect_access(
         except Exception:  # noqa: BLE001 - one bad object must not block the others
             continue
     for item in subscribed:
-        if (item.get("metadata", {}) or {}).get("uid") == exclude_uid and exclude_uid:
+        if _leaving(item, exclude_uid):
             continue
         if (item.get("status", {}) or {}).get("status") == "PendingTopic":
             continue
